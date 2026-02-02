@@ -17,9 +17,6 @@ The bot supports the following events to display in Discord:
 
 ## Getting starting
 
-To start, please invite the bot to your server:
-<https://discord.com/api/oauth2/authorize?client_id=1155297342531059763&permissions=0&scope=bot>
-
 Once you've added the bot, you can begin monitoring a session using the `/monitor` command followed by the displayed arguments.
 
 The required arguments include: `game`, `player`, `host`, `port`
