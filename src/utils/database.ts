@@ -1,4 +1,4 @@
-import { MysqlError, createConnection } from 'mysql'
+import { createConnection } from 'mysql2'
 import Monitor from '../classes/monitor'
 import { Connection } from '../classes/connection'
 import MonitorData from '../classes/monitordata'
@@ -23,7 +23,7 @@ async function createLog (guildId: string, userId: string, action: string) {
 
 function getConnections (): Promise<Connection[]> {
   return new Promise((resolve, reject) => {
-    connection.query('SELECT * FROM connections', (err: MysqlError, results: Connection[]) => {
+    connection.query('SELECT * FROM connections', (err: any, results: Connection[]) => {
       if (err) reject(err)
       resolve(results)
     })
