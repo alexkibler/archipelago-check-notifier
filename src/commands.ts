@@ -23,7 +23,7 @@ function Init (client: Client) {
   restClient.put(Routes.applicationCommands(client.application?.id), { body: [] })
 
   // Register slash commands with Discord.js rest
-  restClient.put(Routes.applicationGuildCommands(client.application?.id, '606926504424767488'), { body: GetDebugCommands() })
+  restClient.put(Routes.applicationGuildCommands(client.application?.id, process.env.GUILD_ID), { body: GetDebugCommands() })
   restClient.put(Routes.applicationCommands(client.application?.id), { body: GetCommands() })
 }
 
