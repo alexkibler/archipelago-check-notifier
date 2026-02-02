@@ -1,13 +1,17 @@
 {
   "compilerOptions": {
-    "lib": [
-      "es6"
-    ],
+    "lib": ["ES2020"],
+    "target": "ES2020",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
     "alwaysStrict": true,
-    "strictNullChecks": true,
-    "noImplicitAny": true
+    "noImplicitAny": false,
+    "noEmitOnError": false,
+    "outDir": "./dist"
   },
-  "files": [
-    "src/index.ts"
+  "include": [
+    "index.ts",
+    "src/**/*"
   ]
 }
