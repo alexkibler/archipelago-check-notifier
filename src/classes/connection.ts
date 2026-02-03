@@ -5,4 +5,9 @@ export type Connection = {
     game: string
     player: string
     channel: string
+    mention_join_leave: boolean
+    mention_item_finder: boolean
+    mention_item_receiver: boolean
+    mention_completion: boolean
+    mention_hints: boolean
 }

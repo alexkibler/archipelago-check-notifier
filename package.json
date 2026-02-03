@@ -5,7 +5,7 @@
     "mysql2": "^3.6.0"
   },
   "name": "archipelago-check-notifier",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "main": "./lib/index.js",
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",

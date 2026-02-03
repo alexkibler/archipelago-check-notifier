@@ -13,7 +13,12 @@ export default class MonitorCommand extends Command {
     { type: ApplicationCommandOptionType.Integer, name: 'port', description: 'The port to use', required: true },
     { type: ApplicationCommandOptionType.String, name: 'game', description: 'The game to monitor', required: true },
     { type: ApplicationCommandOptionType.String, name: 'player', description: 'The player to monitor', required: true },
-    { type: ApplicationCommandOptionType.Channel, channelTypes: [ChannelType.GuildText], name: 'channel', description: 'The channel to send messages to', required: true }
+    { type: ApplicationCommandOptionType.Channel, channelTypes: [ChannelType.GuildText], name: 'channel', description: 'The channel to send messages to', required: true },
+    { type: ApplicationCommandOptionType.Boolean, name: 'mention_join_leave', description: 'Whether to @ people for joining or leaving (default: false)', required: false },
+    { type: ApplicationCommandOptionType.Boolean, name: 'mention_item_finder', description: 'Whether to @ people when they find an item (default: true)', required: false },
+    { type: ApplicationCommandOptionType.Boolean, name: 'mention_item_receiver', description: 'Whether to @ people when they receive an item (default: true)', required: false },
+    { type: ApplicationCommandOptionType.Boolean, name: 'mention_completion', description: 'Whether to @ people when they complete their goal (default: true)', required: false },
+    { type: ApplicationCommandOptionType.Boolean, name: 'mention_hints', description: 'Whether to @ people when they are mentioned in a hint (default: true)', required: false }
   ]
 
   constructor (client: any) {
@@ -49,7 +54,12 @@ export default class MonitorCommand extends Command {
       player: interaction.options.getString('player', true),
       host: interaction.options.getString('host', true),
       port: interaction.options.getInteger('port', true),
-      channel: interaction.options.getChannel('channel', true).id
+      channel: interaction.options.getChannel('channel', true).id,
+      mention_join_leave: interaction.options.getBoolean('mention_join_leave') ?? false,
+      mention_item_finder: interaction.options.getBoolean('mention_item_finder') ?? true,
+      mention_item_receiver: interaction.options.getBoolean('mention_item_receiver') ?? true,
+      mention_completion: interaction.options.getBoolean('mention_completion') ?? true,
+      mention_hints: interaction.options.getBoolean('mention_hints') ?? true
     }
 
     // Only allow one monitor per host/port/player combo

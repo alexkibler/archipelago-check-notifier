@@ -253,7 +253,12 @@ export default Database
 
 Once deployed, the bot provides these slash commands:
 
-- `/monitor` - Start monitoring an Archipelago session
+- `/monitor` - Start monitoring an Archipelago session. Supports optional flags to configure mentions:
+    - `mention_join_leave` - @ for join/leave (default: false)
+    - `mention_item_finder` - @ for finding items (default: true)
+    - `mention_item_receiver` - @ for receiving items (default: true)
+    - `mention_completion` - @ for finishing goal (default: true)
+    - `mention_hints` - @ for hints (default: true)
 - `/unmonitor` - Stop monitoring a session
 
 ---

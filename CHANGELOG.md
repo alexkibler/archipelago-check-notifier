@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-02-02
+
+### Added
+- Configurable mention flags for `/monitor` command:
+    - `mention_join_leave`: Toggle mentions for joining/leaving (default: false).
+    - `mention_item_finder`: Toggle mentions for the player who finds an item (default: true).
+    - `mention_item_receiver`: Toggle mentions for the player who receives an item (default: true).
+    - `mention_completion`: Toggle mentions for goal completion (default: true).
+    - `mention_hints`: Toggle mentions for players named in hints (default: true).
+- Support for `Goal` (completion) and `Release` notification types.
+- Automatic database migration for new configuration columns.
+
+### Changed
+- Improved mention logic to distinguish between item finders and receivers.
+
 ## [1.2.0] - 2026-02-02
 
 ### Added

@@ -16,6 +16,25 @@ async function migrate (): Promise<void> {
   await pool.query('CREATE TABLE IF NOT EXISTS connections (id INT AUTO_INCREMENT PRIMARY KEY, host VARCHAR(255), port INT, game VARCHAR(255), player VARCHAR(255), channel VARCHAR(255))')
   await pool.query('CREATE TABLE IF NOT EXISTS activity_log (id INT AUTO_INCREMENT PRIMARY KEY, guild_id VARCHAR(255), user_id VARCHAR(255), action VARCHAR(255), timestamp DATETIME)')
   await pool.query('CREATE TABLE IF NOT EXISTS user_links (id INT AUTO_INCREMENT PRIMARY KEY, guild_id VARCHAR(255), archipelago_name VARCHAR(255), discord_id VARCHAR(255), UNIQUE KEY (guild_id, archipelago_name))')
+
+  // Migration for 1.3.0 - Add mention flags
+  const [columns]: any = await pool.query('SHOW COLUMNS FROM connections')
+  const columnNames = columns.map((c: any) => c.Field)
+  if (!columnNames.includes('mention_join_leave')) {
+    await pool.query('ALTER TABLE connections ADD COLUMN mention_join_leave TINYINT(1) DEFAULT 0')
+  }
+  if (!columnNames.includes('mention_item_finder')) {
+    await pool.query('ALTER TABLE connections ADD COLUMN mention_item_finder TINYINT(1) DEFAULT 1')
+  }
+  if (!columnNames.includes('mention_item_receiver')) {
+    await pool.query('ALTER TABLE connections ADD COLUMN mention_item_receiver TINYINT(1) DEFAULT 1')
+  }
+  if (!columnNames.includes('mention_completion')) {
+    await pool.query('ALTER TABLE connections ADD COLUMN mention_completion TINYINT(1) DEFAULT 1')
+  }
+  if (!columnNames.includes('mention_hints')) {
+    await pool.query('ALTER TABLE connections ADD COLUMN mention_hints TINYINT(1) DEFAULT 1')
+  }
 }
 
 async function linkUser (guildId: string, archipelagoName: string, discordId: string) {
@@ -41,11 +60,19 @@ async function createLog (guildId: string, userId: string, action: string) {
 
 async function getConnections (): Promise<Connection[]> {
   const [rows] = await pool.query('SELECT * FROM connections')
-  return rows as Connection[]
+  return (rows as any[]).map(row => ({
+    ...row,
+    mention_join_leave: !!row.mention_join_leave,
+    mention_item_finder: !!row.mention_item_finder,
+    mention_item_receiver: !!row.mention_item_receiver,
+    mention_completion: !!row.mention_completion,
+    mention_hints: !!row.mention_hints
+  }))
 }
 
 async function makeConnection (data: MonitorData): Promise<void> {
-  await pool.query('INSERT INTO connections (host, port, game, player, channel) VALUES (?, ?, ?, ?, ?)', [data.host, data.port, data.game, data.player, data.channel])
+  await pool.query('INSERT INTO connections (host, port, game, player, channel, mention_join_leave, mention_item_finder, mention_item_receiver, mention_completion, mention_hints) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [data.host, data.port, data.game, data.player, data.channel, data.mention_join_leave, data.mention_item_finder, data.mention_item_receiver, data.mention_completion, data.mention_hints])
 }
 
 async function removeConnection (monitor: Monitor) {
