@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-02-02
+
+### Fixed
+- Resolved Railway build failure caused by ESLint 9 peer dependency conflicts.
+- Added dependency overrides in `package.json` to support ESLint 9 with legacy configs.
+- Upgraded `eslint-plugin-n` to v17 and `eslint-plugin-import` to v2.31 for ESLint 9 compatibility.
+
 ## [1.1.2] - 2026-02-02
 
 ### Changed
