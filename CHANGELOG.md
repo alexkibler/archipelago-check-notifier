@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-02-06
+
+### Changed
+- Performed Git maintenance: removed `.idea` folder from repository history to keep IDE settings local-only.
+- Updated `CHANGELOG.md` to reflect recent improvements and maintenance.
+
+## [1.5.0] - 2026-02-06
+
+### Added
+- **"Re-monitor" Button:** Bot now posts a card with a "Re-monitor" button when a connection is lost or fails on startup.
+- Improved bot reliability by allowing users to quickly restart monitors without re-typing commands.
+- Added connection ID tracking in the database to facilitate re-monitoring.
+
+### Changed
+- Performed Git maintenance: removed `.gitignore` from repository history to make it a purely local file.
+
 ## [1.4.0] - 2026-02-02
 
 ### Added
