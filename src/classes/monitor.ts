@@ -229,6 +229,7 @@ export default class Monitor {
         this.send(`${formatPlayer(packet.slot, this.data.mention_join_leave, 'mention_join_leave')} (${this.client.players.get(packet.slot)?.game}) joined the game!`)
         break
       case 'Part':
+        if ((packet as any).tags?.includes('Monitor')) return
         this.send(`${formatPlayer(packet.slot, this.data.mention_join_leave, 'mention_join_leave')} (${this.client.players.get(packet.slot)?.game}) left the game!`)
         break
       case 'Goal':

@@ -1,12 +1,19 @@
-import { Client, Events, InteractionType, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
+import { Client, Events, InteractionType, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, GatewayIntentBits, REST, Routes } from 'discord.js'
 import Commands from './src/commands'
 import Database from './src/utils/database'
 import Monitors from './src/utils/monitors'
 import { Connection } from './src/classes/connection'
+import * as path from 'path'
+import * as dotenv from 'dotenv'
 
-const client = new Client({ intents: ['Guilds'] })
+// Load environment variables if .env file exists
+dotenv.config()
 
-client.on(Events.ClientReady, async () => {
+const client = new Client({ intents: [GatewayIntentBits.Guilds] })
+
+client.once(Events.ClientReady, async () => {
+  console.log(`Logged in as ${client.user?.tag}!`)
+
   try {
     await Database.migrate()
     console.log('Database migrated.')
@@ -32,20 +39,6 @@ client.on(Events.ClientReady, async () => {
       }
       Monitors.make(result, client).catch(err => {
         console.error(`Failed to reconnect to monitor ${result.host}:${result.port}:`, err)
-        const channel = client.channels.cache.get(result.channel)
-        if (channel?.isTextBased()) {
-          const embed = new EmbedBuilder()
-            .setTitle('Archipelago')
-            .setDescription(`Failed to reconnect to monitor ${result.host}:${result.port} on startup.`)
-          const row = new ActionRowBuilder<ButtonBuilder>()
-            .addComponents(
-              new ButtonBuilder()
-                .setCustomId(`remonitor:${result.id}`)
-                .setLabel('Re-monitor')
-                .setStyle(ButtonStyle.Primary)
-            )
-          ;(channel as any).send({ embeds: [embed], components: [row] }).catch(console.error)
-        }
       })
     }
   } catch (err) {
@@ -78,22 +71,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return
     }
 
-    switch (interaction.type) {
-      case InteractionType.ApplicationCommandAutocomplete:
-        Commands.Autocomplete(interaction)
-        break
-      case InteractionType.ApplicationCommand:
+    if (interaction.type === InteractionType.ApplicationCommandAutocomplete) {
+      Commands.Autocomplete(interaction)
+    } else if (interaction.type === InteractionType.ApplicationCommand) {
+      if (interaction.isChatInputCommand()) {
         Commands.Execute(interaction)
         await Database.createLog(interaction.guildId || '0', interaction.user.id, `Executed command ${interaction.commandName}`)
-        break
+      }
     }
   } catch (err) {
     console.error('Interaction error:', err)
-    if (interaction.type === InteractionType.ApplicationCommand) {
+    if (interaction.isRepliable()) {
+      const payload: any = { content: 'There was an error while executing this command!', flags: [MessageFlags.Ephemeral] }
       if (interaction.replied || interaction.deferred) {
-        interaction.followUp({ content: 'There was an error while executing this command!', flags: [MessageFlags.Ephemeral] }).catch(() => {})
+        interaction.followUp(payload).catch(() => {})
       } else {
-        interaction.reply({ content: 'There was an error while executing this command!', flags: [MessageFlags.Ephemeral] }).catch(() => {})
+        interaction.reply(payload).catch(() => {})
       }
     }
   }
@@ -101,17 +94,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 client.on(Events.GuildCreate, async (guild) => {
   await Database.createLog(guild.id, '0', 'Added to guild')
-
-  if (process.env.LOG_CHANNEL) {
-    const channel = client.channels.cache.get(process.env.LOG_CHANNEL)
-    if (channel?.isTextBased()) {
-      (channel as any).send(`Added to guild ${guild.name}`).catch(console.error)
-    }
-  }
 })
 
 client.on(Events.GuildDelete, async (guild) => {
   await Database.createLog(guild.id, '0', 'Removed from guild')
 })
 
-client.login(process.env.DISCORD_TOKEN)
+// Login using DISCORD_TOKEN
+const token = process.env.DISCORD_TOKEN
+if (!token) {
+  console.error('Error: DISCORD_TOKEN environment variable is not set.')
+  process.exit(1)
+}
+
+client.login(token)

@@ -25,11 +25,12 @@ This version has been updated to support self-hosting with Docker and SQLite, ma
 ### 1. Create a Discord Application
 
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
-2. Click **New Application** and give it a name
-3. Go to the **Bot** tab:
+2. Click **New Application** and give it a name.
+3. On the **General Information** page, copy the **Application ID** (this is your `CLIENT_ID`).
+4. Go to the **Bot** tab:
     - Click **Reset Token** and copy the token (save it securely - you'll need it later)
     - Under **Privileged Gateway Intents**, enable **Message Content Intent**
-4. Go to **OAuth2 → URL Generator**:
+5. Go to **OAuth2 → URL Generator**:
     - Select scopes: `bot` and `applications.commands`
     - Select bot permissions: `Send Messages`, `Embed Links`, `Use Slash Commands`
 5. Copy the generated URL and open it in your browser to invite the bot to your server
@@ -55,14 +56,14 @@ services:
     volumes:
       - ./data:/data
     environment:
-      - TOKEN=your_discord_bot_token_here
+      - DISCORD_TOKEN=your_discord_bot_token_here
       - CLIENT_ID=your_discord_client_id_here
       - GUILD_ID=your_discord_guild_id_here
       - DB_PATH=/data/database.sqlite
 ```
 
 3. Replace the placeholder values in `environment`:
-    - `TOKEN`: Your Discord Bot Token (from Step 1)
+    - `DISCORD_TOKEN`: Your Discord Bot Token (from Step 1)
     - `CLIENT_ID`: Your Discord Application Client ID
     - `GUILD_ID`: Your Discord Server ID (from Step 2)
 
