@@ -2,7 +2,8 @@
   "dependencies": {
     "archipelago.js": "^1.1.0",
     "discord.js": "^14.25.1",
-    "mysql2": "^3.6.0"
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   },
   "name": "archipelago-check-notifier",
   "version": "1.4.0",
