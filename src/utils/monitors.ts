@@ -1,5 +1,5 @@
 import MonitorData from '../classes/monitordata'
-import { Client, ConnectionInformation, ITEMS_HANDLING_FLAGS } from 'archipelago.js'
+import { Client, itemsHandlingFlags } from 'archipelago.js'
 import Monitor from '../classes/monitor'
 import { Client as DiscordClient } from 'discord.js'
 import Database from './database'
@@ -9,30 +9,26 @@ const monitors: Monitor[] = []
 function make (data: MonitorData, client: DiscordClient): Promise<Monitor> {
   return new Promise<Monitor>((resolve, reject) => {
     const archi = new Client()
-    const connectionInfo: ConnectionInformation = {
-      hostname: data.host,
-      port: data.port,
-      game: data.game,
-      name: data.player,
-      items_handling: ITEMS_HANDLING_FLAGS.REMOTE_ALL,
-      tags: ['IgnoreGame', 'Tracker', 'Monitor'],
-      version: { major: 0, minor: 5, build: 0 }
-    }
 
-    archi.connect(connectionInfo).then(() => {
+    // Login handles connection and authentication automatically
+    archi.login(`${data.host}:${data.port}`, data.player, data.game, {
+      items: itemsHandlingFlags.all,
+      tags: ['IgnoreGame', 'Monitor'],
+      version: { major: 0, minor: 6, build: 2 }
+    }).then(() => {
       const monitor = new Monitor(archi, data, client)
       Database.createLog(monitor.guild.id, '0', `Connected to ${data.host}:${data.port}`)
       monitors.push(monitor)
       resolve(monitor)
     }).catch((err) => {
-      console.log(err)
+      console.error(`Login failed for ${data.player} on ${data.host}:${data.port}:`, err)
       reject(err)
     })
   })
 }
 
 function remove (uri: string, removeFromDb: boolean = true) {
-  const monitor = monitors.find((monitor) => monitor.client.uri?.includes(uri) || `${monitor.data.host}:${monitor.data.port}` === uri)
+  const monitor = monitors.find((monitor) => monitor.client.socket.url?.includes(uri) || `${monitor.data.host}:${monitor.data.port}` === uri)
   if (monitor == null) return
   monitors.splice(monitors.indexOf(monitor), 1)
   monitor.stop()
@@ -43,7 +39,7 @@ function remove (uri: string, removeFromDb: boolean = true) {
 }
 
 function has (uri: string) {
-  return monitors.some((monitor) => monitor.client.uri?.includes(uri) || `${monitor.data.host}:${monitor.data.port}` === uri)
+  return monitors.some((monitor) => monitor.client.socket.url?.includes(uri) || `${monitor.data.host}:${monitor.data.port}` === uri)
 }
 
 function get (guild: string) {

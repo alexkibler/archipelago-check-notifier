@@ -44,13 +44,13 @@ This version has been updated to support self-hosting with Docker and SQLite, ma
 
 ### 3. Deploy with Docker Compose
 
-1. Create a directory for your bot and navigate into it.
+1. Clone this repository and navigate into the directory.
 2. Create a `docker-compose.yml` file with the following content:
 
 ```yaml
 services:
   archipelago-bot:
-    image: ghcr.io/matthe815s-projects/archipelago-check-notifier:latest
+    build: .
     container_name: archipelago-bot
     restart: unless-stopped
     volumes:

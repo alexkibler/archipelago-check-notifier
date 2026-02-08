@@ -31,7 +31,12 @@ async function Init (client: Client) {
 
   // Register slash commands with Discord.js rest
   if (process.env.GUILD_ID) {
-    await restClient.put(Routes.applicationGuildCommands(client.application?.id, process.env.GUILD_ID), { body: GetDebugCommands() })
+    try {
+      await restClient.put(Routes.applicationGuildCommands(client.application?.id, process.env.GUILD_ID), { body: GetDebugCommands() })
+      console.log(`Registered guild commands for ${process.env.GUILD_ID}`)
+    } catch (err) {
+      console.error(`Failed to register guild commands for ${process.env.GUILD_ID}. Ensure the bot is in the server and has 'applications.commands' scope.`)
+    }
   }
   await restClient.put(Routes.applicationCommands(client.application?.id), { body: GetCommands() })
 }

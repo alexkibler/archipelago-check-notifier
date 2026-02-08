@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "archipelago.js": "^1.1.0",
+    "archipelago.js": "^2.0.4",
     "discord.js": "^14.25.1",
     "dotenv": "^17.2.4",
     "sqlite": "^5.1.1",

@@ -1,16 +1,15 @@
 import { EmbedBuilder, Guild, Client as DiscordClient, GuildChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js'
-import { Client, CollectJSONPacket, HintJSONPacket, ITEMS_HANDLING_FLAGS, ItemSendJSONPacket, PrintJSONPacket, SERVER_PACKET_TYPE, SlotData } from 'archipelago.js'
+import { Client, itemsHandlingFlags } from 'archipelago.js'
 import MonitorData from './monitordata'
-import RandomHelper from '../utils/randohelper'
 import Database from '../utils/database'
 
 export default class Monitor {
-  client: Client<SlotData>
+  client: Client
   channel: any
   guild: Guild
   data: MonitorData
 
-  isReconnecting: boolean
+  isReconnecting: boolean = false
   isActive: boolean = true
   reconnectTimeout: any = null
 
@@ -20,49 +19,12 @@ export default class Monitor {
       clearTimeout(this.reconnectTimeout)
       this.reconnectTimeout = null
     }
-    this.client.disconnect()
+    this.client.socket.disconnect()
   }
 
   queue = {
     hints: [] as string[],
     items: [] as string[]
-  }
-
-  convertData (message: ItemSendJSONPacket | CollectJSONPacket | HintJSONPacket, linkMap: Map<string, any>) {
-    return message.data.map((slot) => {
-      switch (slot.type) {
-        case 'player_id': {
-          const playerId = parseInt(slot.text)
-          const playerName = this.client.players.get(playerId)?.name
-          const link = playerName ? linkMap.get(playerName) : null
-          if (link) {
-            let shouldMention = true
-            if (message.type === 'ItemSend') {
-              if (playerId === (message as any).receiving) {
-                shouldMention = this.data.mention_item_receiver && link.mention_item_receiver
-              } else {
-                shouldMention = this.data.mention_item_finder && link.mention_item_finder
-              }
-            } else if (message.type === 'Hint') {
-              shouldMention = this.data.mention_hints && link.mention_hints
-            } else if (message.type === 'Collect') {
-              shouldMention = this.data.mention_item_finder && link.mention_item_finder
-            }
-
-            if (shouldMention) {
-              return `<@${link.discord_id}>`
-            }
-          }
-          return `**${playerName}**`
-        }
-        case 'item_id':
-          return `*${RandomHelper.getItem(this.client, slot.player, parseInt(slot.text), slot.flags)}*`
-        case 'location_id':
-          return `**${RandomHelper.getLocation(this.client, slot.player, parseInt(slot.text))}**`
-        default:
-          return slot.text
-      }
-    }).join(' ')
   }
 
   addQueue (message: string, type: 'hints' | 'items' = 'hints') {
@@ -81,7 +43,6 @@ export default class Monitor {
   sendQueue () {
     const hints = this.queue.hints.map((message, index) => ({ name: `#${index + 1}`, value: message }))
     this.queue.hints = []
-    // split into multiple messages if there are too many items
     while (hints.length > 0) {
       const batch = hints.splice(0, 25)
       const mentions = new Set<string>()
@@ -100,7 +61,6 @@ export default class Monitor {
 
     const items = this.queue.items.map((message, index) => ({ name: `#${index + 1}`, value: message }))
     this.queue.items = []
-    // split into multiple messages if there are too many items
     while (items.length > 0) {
       const batch = items.splice(0, 25)
       const mentions = new Set<string>()
@@ -119,7 +79,6 @@ export default class Monitor {
   }
 
   send (message: string, components?: any[]) {
-    // make an embed for the message
     const embed = new EmbedBuilder().setDescription(message).setTitle('Archipelago')
 
     const mentions = new Set<string>()
@@ -133,7 +92,7 @@ export default class Monitor {
     this.channel.send({ content, embeds: [embed.data], components }).catch(console.error)
   }
 
-  constructor (client: Client<SlotData>, monitorData: MonitorData, discordClient: DiscordClient) {
+  constructor (client: Client, monitorData: MonitorData, discordClient: DiscordClient) {
     this.client = client
     this.data = monitorData
 
@@ -145,9 +104,103 @@ export default class Monitor {
     this.channel = channel
     this.guild = channel.guild
 
-    client.addListener(SERVER_PACKET_TYPE.CONNECTION_REFUSED, this.onDisconnect.bind(this))
-    ;(client as any).on?.('disconnected', this.onDisconnect.bind(this))
-    client.addListener(SERVER_PACKET_TYPE.PRINT_JSON, this.onJSON.bind(this))
+    client.socket.on('disconnected', this.onDisconnect.bind(this))
+    client.socket.on('connectionRefused', this.onDisconnect.bind(this))
+
+    // New v2 Message Handling
+    client.messages.on('itemSent', async (text, item, nodes) => {
+      if (!this.isActive) return
+      const formatted = await this.formatWithMentions(text, nodes)
+      this.addQueue(formatted, 'items')
+    })
+
+    client.messages.on('itemHinted', async (text, item, found, nodes) => {
+      if (!this.isActive) return
+      console.log('[itemHinted event]', { text, item, found })
+      const formatted = await this.formatWithMentions(text, nodes)
+      this.addQueue(formatted, 'hints')
+    })
+
+    // Listen for server chat messages (like hint responses)
+    client.messages.on('serverChat', async (message, nodes) => {
+      if (!this.isActive) return
+      console.log('[serverChat event]', { message })
+
+      // Check if this is a hint response
+      if (message.toLowerCase().includes('hint')) {
+        const formatted = await this.formatWithMentions(message, nodes)
+        this.send(formatted)
+      }
+    })
+
+    // Listen for ALL messages to debug
+    client.messages.on('message', async (text, nodes) => {
+      if (!this.isActive) return
+      console.log('[message event (all)]', { text })
+    })
+
+    // Listen for user command results (like !hint responses)
+    client.messages.on('userCommand', async (text, nodes) => {
+      if (!this.isActive) return
+      console.log('[userCommand event]', { text })
+      const formatted = await this.formatWithMentions(text, nodes)
+      this.send(formatted)
+    })
+
+    client.messages.on('connected', async (text, player, tags, nodes) => {
+      if (!this.isActive) return
+      if (tags.includes('Monitor')) return
+      const formatted = await this.formatWithMentions(text, nodes, 'mention_join_leave')
+      this.send(formatted)
+    })
+
+    client.messages.on('disconnected', async (text, player, nodes) => {
+      if (!this.isActive) return
+      const formatted = await this.formatWithMentions(text, nodes, 'mention_join_leave')
+      this.send(formatted)
+    })
+
+    client.messages.on('goaled', async (text, player, nodes) => {
+      if (!this.isActive) return
+      const formatted = await this.formatWithMentions(text, nodes, 'mention_completion')
+      this.send(formatted)
+    })
+
+    client.messages.on('released', async (text, player, nodes) => {
+      if (!this.isActive) return
+      const formatted = await this.formatWithMentions(text, nodes, 'mention_item_finder')
+      this.send(formatted)
+    })
+
+    client.messages.on('collected', async (text, player, nodes) => {
+      if (!this.isActive) return
+      const formatted = await this.formatWithMentions(text, nodes, 'mention_item_finder')
+      this.send(formatted)
+    })
+  }
+
+  // Helper to convert nodes to text with Discord mentions applied
+  async formatWithMentions (plainText: string, nodes: any[], flagName?: string): Promise<string> {
+    const links = await Database.getLinks(this.guild.id)
+    const linkMap = new Map<string, any>(links.map(l => [l.archipelago_name, l]))
+
+    return nodes.map((node: any) => {
+      if (node.type === 'player') {
+        const playerName = node.player.name
+        const link = linkMap.get(playerName)
+        if (link) {
+          let shouldMention = true
+          if (flagName && link[flagName] !== undefined) {
+            shouldMention = !!link[flagName]
+          }
+          if (shouldMention) return `<@${link.discord_id}>`
+        }
+        return `**${node.text}**`
+      }
+      if (node.type === 'item') return `*${node.text}*`
+      if (node.type === 'location') return `**${node.text}**`
+      return node.text
+    }).join('')
   }
 
   onDisconnect () {
@@ -163,81 +216,25 @@ export default class Monitor {
       )
 
     this.send('Disconnected from the server.', [row])
-
     this.reconnect()
   }
 
   reconnect () {
     if (!this.isActive) return
 
-    this.client.connect({
-      game: this.data.game,
-      hostname: this.data.host,
-      port: this.data.port,
-      name: this.data.player,
-      items_handling: ITEMS_HANDLING_FLAGS.REMOTE_ALL,
-      version: { major: 0, minor: 5, build: 0 }
+    this.client.login(`${this.data.host}:${this.data.port}`, this.data.player, this.data.game, {
+      items: itemsHandlingFlags.all,
+      tags: ['IgnoreGame', 'Monitor'],
+      version: { major: 0, minor: 6, build: 2 }
     }).then(() => {
       this.isReconnecting = false
-    }).catch(() => {
+    }).catch((err) => {
+      console.error(`Reconnect failed for ${this.data.player} on ${this.data.host}:${this.data.port}:`, err)
       if (!this.isActive) return
       this.reconnectTimeout = setTimeout(() => {
         this.reconnectTimeout = null
         this.reconnect()
       }, 300000)
     })
-  }
-
-  // When a message is received from the server
-  async onJSON (packet: PrintJSONPacket) {
-    if (!this.isActive) return
-    const links = await Database.getLinks(this.guild.id)
-    const linkMap = new Map<string, any>(links.map(l => [l.archipelago_name, l]))
-
-    const formatPlayer = (slot: number, monitorMentionFlag: boolean = true, flagName?: string) => {
-      const playerName = this.client.players.get(slot)?.name
-      const link = playerName ? linkMap.get(playerName) : null
-      if (link) {
-        let shouldMention = monitorMentionFlag
-        if (flagName && link[flagName] !== undefined) {
-          shouldMention = shouldMention && link[flagName]
-        }
-
-        if (shouldMention) {
-          return `<@${link.discord_id}>`
-        }
-      }
-      return `**${playerName}**`
-    }
-
-    switch (packet.type) {
-      case 'Collect':
-      case 'ItemSend':
-        this.addQueue(this.convertData(packet, linkMap), 'items')
-        break
-      case 'Hint':
-        this.addQueue(this.convertData(packet, linkMap), 'hints')
-        break
-      case 'Join':
-        // Overrides for special join messages
-        if (packet.tags?.includes('Monitor')) return
-        if (packet.tags?.includes('IgnoreGame')) {
-          this.send(`A tracker for ${formatPlayer(packet.slot, this.data.mention_join_leave, 'mention_join_leave')} has joined the game!`)
-          return
-        }
-
-        this.send(`${formatPlayer(packet.slot, this.data.mention_join_leave, 'mention_join_leave')} (${this.client.players.get(packet.slot)?.game}) joined the game!`)
-        break
-      case 'Part':
-        if ((packet as any).tags?.includes('Monitor')) return
-        this.send(`${formatPlayer(packet.slot, this.data.mention_join_leave, 'mention_join_leave')} (${this.client.players.get(packet.slot)?.game}) left the game!`)
-        break
-      case 'Goal':
-        this.send(`${formatPlayer(packet.slot, this.data.mention_completion, 'mention_completion')} has completed their goal!`)
-        break
-      case 'Release':
-        this.send(`${formatPlayer(packet.slot, this.data.mention_item_finder, 'mention_item_finder')} has released their remaining items!`)
-        break
-    }
   }
 }
