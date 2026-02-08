@@ -1,19 +1,16 @@
-# Archipelago Check Notifier - Self-Hosting Guide
+# Archipelago Check Notifier
 
-A Discord bot that monitors Archipelago multiworld randomizer sessions and posts notifications to Discord channels when checks are found.
-
-## Overview
-
-This bot connects to Archipelago multiworld servers and notifies a Discord channel whenever a player finds a check. It's useful for collaborative gaming sessions where players want to track progress across multiple games.
-
-This version has been updated to support self-hosting with Docker and SQLite, making it easy to run on your own hardware (including ARM devices like Mac Mini or Raspberry Pi).
+A Discord bot that monitors Archipelago multiworld randomizer sessions and posts real-time notifications to Discord channels when items are sent, received, or found.
 
 ## Features
 
-- Monitor Archipelago sessions for check notifications
-- Link Discord users to Archipelago player names for targeted mentions
-- Request hints directly from Discord via `/hint`
-- Customizable notification settings (items found, received, goal completion, hints, etc.)
+- **Player-Specific Monitoring**: Each player gets their own monitor with filtered notifications
+- **Multi-Player Support**: Multiple players can monitor the same AP server simultaneously
+- **Guild Server Linking**: Set a default AP server for your Discord server (no need to specify host/port every time)
+- **Smart Hint System**: Request hints with dynamic item autocomplete
+- **User Linking**: Link Discord users to Archipelago player names for @mentions
+- **Customizable Notifications**: Control mentions for items found, received, goals, hints, and join/leave events
+- **Docker Support**: Easy deployment with Docker Compose on any platform (including ARM devices)
 
 ## Prerequisites
 
@@ -22,18 +19,18 @@ This version has been updated to support self-hosting with Docker and SQLite, ma
 
 ## Setup Instructions
 
-### 1. Create a Discord Application
+### 1. Create a Discord Bot
 
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
-2. Click **New Application** and give it a name.
-3. On the **General Information** page, copy the **Application ID** (this is your `CLIENT_ID`).
+2. Click **New Application** and give it a name
+3. On the **General Information** page, copy the **Application ID** (this is your `CLIENT_ID`)
 4. Go to the **Bot** tab:
-    - Click **Reset Token** and copy the token (save it securely - you'll need it later)
-    - Under **Privileged Gateway Intents**, enable **Message Content Intent**
+   - Click **Reset Token** and copy the token (save it securely!)
+   - Under **Privileged Gateway Intents**, enable **Message Content Intent**
 5. Go to **OAuth2 → URL Generator**:
-    - Select scopes: `bot` and `applications.commands`
-    - Select bot permissions: `Send Messages`, `Embed Links`, `Use Slash Commands`
-5. Copy the generated URL and open it in your browser to invite the bot to your server
+   - Select scopes: `bot` and `applications.commands`
+   - Select bot permissions: `Send Messages`, `Embed Links`, `Mention Everyone`, `Read Message History`
+6. Copy the generated URL and open it in your browser to invite the bot to your server
 
 ### 2. Get Your Discord Server ID
 
@@ -75,29 +72,163 @@ docker-compose up -d
 
 The bot should now be online in your server.
 
-## Bot Commands
+---
 
-- `/monitor` - Start monitoring an Archipelago session.
-    - `host`: The Archipelago server address (e.g., `archipelago.gg`)
-    - `port`: The port number
-    - `game`: The game name
-    - `player`: The player name to monitor
-    - `channel`: The channel to post notifications in
-- `/unmonitor` - Stop monitoring a session.
-- `/link` - Link an Archipelago player name to your Discord user.
-- `/unlink` - Remove a link.
-- `/links` - Show all links in the server.
-- `/hint` - Request a hint from the Archipelago server.
-    - `item`: The item to hint for (required)
-    - `player`: The player name to request as (optional, defaults to linked player)
+## Usage Guide
+
+### Initial Setup (One-Time)
+
+#### 1. Set Default AP Server (Admin Only)
+
+If your Discord server always plays on the same Archipelago instance, set it as the default:
+
+```
+/set-server host:archipelago.gg port:38281
+```
+
+**Permission required**: Manage Server
+
+This allows players to use `/monitor` without specifying host/port every time!
+
+#### 2. Link Your Discord Account
+
+Link your Discord user to your Archipelago player name:
+
+```
+/link player:YourAPPlayerName
+```
+
+This enables:
+- @mentions when you receive items
+- Automatic player detection in `/hint`
+- Personalized notifications
+
+### Monitoring Sessions
+
+#### Start Monitoring
+
+If your admin set a default server:
+```
+/monitor game:YAYARG player:KiddblurYARG channel:#archipelago
+```
+
+For a different server (overrides default):
+```
+/monitor game:ALTTP player:Link host:other.server.gg port:12345 channel:#ap
+```
+
+**What gets monitored:**
+- Items YOU send to others
+- Items YOU receive from others
+- Items YOU find/collect
+- Goal completion
+- Connection events (optional)
+
+**Important:** Each player needs their own monitor. Multiple players on the same server can each run `/monitor` with their own player name.
+
+#### Stop Monitoring
+
+```
+/unmonitor
+```
+
+Select your monitor from the dropdown (shows as `host:port - PlayerName (Game)`).
+
+### Using Hints
+
+Request hints for items you're looking for:
+
+```
+/hint item:Master Sword
+```
+
+**Features:**
+- **Autocomplete**: Start typing and see all available items for your game
+- **Auto-detection**: Uses your linked player automatically
+- **Works with monitors**: Uses your active monitor's connection
+
+If you don't have a monitor running, you can provide connection details:
+```
+/hint item:Hookshot player:Link host:archipelago.gg port:38281 game:ALTTP
+```
+
+### Managing Links
+
+#### View All Links
+```
+/links
+```
+
+Shows all Discord↔Archipelago player links in your server.
+
+#### Remove a Link
+```
+/unlink player:PlayerName
+```
+
+### Advanced: Notification Settings
+
+When using `/monitor` or `/link`, you can customize @mention behavior:
+
+```
+/monitor game:YAYARG player:Mini channel:#ap
+  mention_item_finder:true
+  mention_item_receiver:true
+  mention_completion:true
+  mention_hints:true
+  mention_join_leave:false
+```
+
+**Options:**
+- `mention_item_finder`: Mention when you find/send an item (default: true)
+- `mention_item_receiver`: Mention when you receive an item (default: true)
+- `mention_completion`: Mention when you complete your goal (default: true)
+- `mention_hints`: Mention in hint responses (default: true)
+- `mention_join_leave`: Mention when you join/leave (default: false)
+
+---
+
+## Commands Reference
+
+| Command | Description | Required Role |
+|---------|-------------|---------------|
+| `/set-server` | Set default AP server for guild | Manage Server |
+| `/monitor` | Start monitoring your AP slot | Everyone |
+| `/unmonitor` | Stop monitoring | Everyone |
+| `/link` | Link Discord to AP player name | Everyone |
+| `/unlink` | Remove player link | Everyone |
+| `/links` | View all links | Everyone |
+| `/hint` | Request item hint with autocomplete | Everyone |
+
+---
+
+## Troubleshooting
+
+**No autocomplete in `/hint`?**
+- Make sure you have an active monitor running
+- Make sure you're linked with `/link`
+
+**Can't use `/monitor` without host/port?**
+- Ask your server admin to use `/set-server` first
+
+**Not getting notifications?**
+- Verify your monitor is active with `/unmonitor` (you should see it in the list)
+- Check that you specified the correct player name (case-sensitive!)
+- Ensure the bot has permission to send messages in the notification channel
+
+**Multiple players on same server?**
+- Each player runs their own `/monitor` command with their own player name
+- Monitors are now per-player, not per-server!
+
+---
 
 ## Building Locally
-
-If you want to build the Docker image yourself:
 
 ```bash
 docker build -t archipelago-bot .
 ```
+
+---
 
 ## License
 

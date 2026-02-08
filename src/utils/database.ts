@@ -20,6 +20,7 @@ async function migrate (): Promise<void> {
   await db.exec('CREATE TABLE IF NOT EXISTS connections (id INTEGER PRIMARY KEY AUTOINCREMENT, host VARCHAR(255), port INT, game VARCHAR(255), player VARCHAR(255), channel VARCHAR(255))')
   await db.exec('CREATE TABLE IF NOT EXISTS activity_log (id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id VARCHAR(255), user_id VARCHAR(255), action VARCHAR(255), timestamp DATETIME)')
   await db.exec('CREATE TABLE IF NOT EXISTS user_links (id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id VARCHAR(255), archipelago_name VARCHAR(255), discord_id VARCHAR(255), UNIQUE(guild_id, archipelago_name))')
+  await db.exec('CREATE TABLE IF NOT EXISTS guild_servers (guild_id VARCHAR(255) PRIMARY KEY, host VARCHAR(255), port INT)')
 
   // Migration for 1.3.0 - Add mention flags
   const columns = await db.all('PRAGMA table_info(connections)')
@@ -168,6 +169,22 @@ async function removeConnection (monitor: Monitor) {
   await db.run('DELETE FROM connections WHERE host = ? AND port = ? AND game = ? AND player = ? AND channel = ?', [monitor.data.host, monitor.data.port, monitor.data.game, monitor.data.player, monitor.channel.id])
 }
 
+async function setGuildServer (guildId: string, host: string, port: number) {
+  const db = await getDb()
+  await db.run('INSERT INTO guild_servers (guild_id, host, port) VALUES (?, ?, ?) ON CONFLICT(guild_id) DO UPDATE SET host = excluded.host, port = excluded.port', [guildId, host, port])
+}
+
+async function getGuildServer (guildId: string): Promise<{ host: string, port: number } | null> {
+  const db = await getDb()
+  const row = await db.get('SELECT host, port FROM guild_servers WHERE guild_id = ?', [guildId])
+  return row || null
+}
+
+async function removeGuildServer (guildId: string) {
+  const db = await getDb()
+  await db.run('DELETE FROM guild_servers WHERE guild_id = ?', [guildId])
+}
+
 const Database = {
   getConnections,
   getConnection,
@@ -177,7 +194,10 @@ const Database = {
   migrate,
   linkUser,
   unlinkUser,
-  getLinks
+  getLinks,
+  setGuildServer,
+  getGuildServer,
+  removeGuildServer
 }
 
 export default Database

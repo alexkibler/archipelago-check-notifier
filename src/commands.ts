@@ -7,6 +7,7 @@ import LinkCommand from './commands/linkcommand'
 import UnlinkCommand from './commands/unlinkcommand'
 import LinksCommand from './commands/linkscommand'
 import HintCommand from './commands/hintcommand'
+import SetServerCommand from './commands/setservercommand'
 let restClient: REST
 
 const commandList: Command[] = [
@@ -24,6 +25,7 @@ async function Init (client: Client) {
   commandList.push(new UnlinkCommand(client))
   commandList.push(new LinksCommand(client))
   commandList.push(new HintCommand(client))
+  commandList.push(new SetServerCommand(client))
 
   if (client.token == null || client.application == null) return
 

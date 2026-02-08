@@ -9,11 +9,11 @@ export default class MonitorCommand extends Command {
   description = 'Start tracking an archipelago session.'
 
   options: ApplicationCommandOption[] = [
-    { type: ApplicationCommandOptionType.String, name: 'host', description: 'The host to use', required: true },
-    { type: ApplicationCommandOptionType.Integer, name: 'port', description: 'The port to use', required: true },
     { type: ApplicationCommandOptionType.String, name: 'game', description: 'The game to monitor', required: true },
     { type: ApplicationCommandOptionType.String, name: 'player', description: 'The player to monitor', required: true },
     { type: ApplicationCommandOptionType.Channel, channelTypes: [ChannelType.GuildText], name: 'channel', description: 'The channel to send messages to', required: true },
+    { type: ApplicationCommandOptionType.String, name: 'host', description: 'The host to use (optional if server has default set)', required: false },
+    { type: ApplicationCommandOptionType.Integer, name: 'port', description: 'The port to use (optional if server has default set)', required: false },
     { type: ApplicationCommandOptionType.Boolean, name: 'mention_join_leave', description: 'Whether to @ people for joining or leaving (default: false)', required: false },
     { type: ApplicationCommandOptionType.Boolean, name: 'mention_item_finder', description: 'Whether to @ people when they find an item (default: true)', required: false },
     { type: ApplicationCommandOptionType.Boolean, name: 'mention_item_receiver', description: 'Whether to @ people when they receive an item (default: true)', required: false },
@@ -26,9 +26,7 @@ export default class MonitorCommand extends Command {
     this.client = client
   }
 
-  validate (interaction: ChatInputCommandInteraction) {
-    const host = interaction.options.getString('host', true)
-
+  validate (interaction: ChatInputCommandInteraction, host: string) {
     // regex for domain or IP address - eg. archipelago.gg
     const hostRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/
     if (!hostRegex.test(host)) {
@@ -45,15 +43,33 @@ export default class MonitorCommand extends Command {
     return true
   }
 
-  execute (interaction: ChatInputCommandInteraction) {
+  async execute (interaction: ChatInputCommandInteraction) {
+    if (!interaction.guildId) {
+      return interaction.reply({ content: 'This command can only be used in a server.', flags: [MessageFlags.Ephemeral] })
+    }
+
+    // Get host and port from command or guild default
+    let host = interaction.options.getString('host')
+    let port = interaction.options.getInteger('port')
+
+    // If host or port not provided, use guild default
+    if (!host || !port) {
+      const guildServer = await Database.getGuildServer(interaction.guildId)
+      if (!guildServer) {
+        return interaction.reply({ content: 'No default server set for this Discord server. Please provide `host` and `port`, or ask an admin to use `/set-server` to set a default.', flags: [MessageFlags.Ephemeral] })
+      }
+      host = guildServer.host
+      port = guildServer.port
+    }
+
     // Validate text input.
-    if (!this.validate(interaction)) return
+    if (!this.validate(interaction, host)) return
 
     const monitorData: MonitorData = {
       game: interaction.options.getString('game', true),
       player: interaction.options.getString('player', true),
-      host: interaction.options.getString('host', true),
-      port: interaction.options.getInteger('port', true),
+      host,
+      port,
       channel: interaction.options.getChannel('channel', true).id,
       mention_join_leave: interaction.options.getBoolean('mention_join_leave') ?? false,
       mention_item_finder: interaction.options.getBoolean('mention_item_finder') ?? true,
