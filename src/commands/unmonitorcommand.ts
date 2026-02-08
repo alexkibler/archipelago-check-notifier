@@ -34,9 +34,10 @@ export default class UnmonitorCommand extends Command {
       const uri = monitor.client.socket.url || ''
       const player = monitor.data.player
       const game = monitor.data.game
+      const monitorKey = `${monitor.data.host}:${monitor.data.port}:${player}`
       return {
         name: `${uri} - ${player} (${game})`,
-        value: uri
+        value: monitorKey
       }
     }))
   }

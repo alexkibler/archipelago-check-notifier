@@ -28,7 +28,10 @@ function make (data: MonitorData, client: DiscordClient): Promise<Monitor> {
 }
 
 function remove (uri: string, removeFromDb: boolean = true) {
-  const monitor = monitors.find((monitor) => monitor.client.socket.url?.includes(uri) || `${monitor.data.host}:${monitor.data.port}` === uri)
+  const monitor = monitors.find((monitor) => {
+    const monitorKey = `${monitor.data.host}:${monitor.data.port}:${monitor.data.player}`
+    return monitor.client.socket.url?.includes(uri) || `${monitor.data.host}:${monitor.data.port}` === uri || monitorKey === uri
+  })
   if (monitor == null) return
   monitors.splice(monitors.indexOf(monitor), 1)
   monitor.stop()
@@ -39,7 +42,10 @@ function remove (uri: string, removeFromDb: boolean = true) {
 }
 
 function has (uri: string) {
-  return monitors.some((monitor) => monitor.client.socket.url?.includes(uri) || `${monitor.data.host}:${monitor.data.port}` === uri)
+  return monitors.some((monitor) => {
+    const monitorKey = `${monitor.data.host}:${monitor.data.port}:${monitor.data.player}`
+    return monitor.client.socket.url?.includes(uri) || `${monitor.data.host}:${monitor.data.port}` === uri || monitorKey === uri
+  })
 }
 
 function get (guild: string) {

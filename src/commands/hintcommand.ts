@@ -1,5 +1,5 @@
 import Command from '../classes/command'
-import { ApplicationCommandOption, ApplicationCommandOptionType, ChatInputCommandInteraction, MessageFlags } from 'discord.js'
+import { ApplicationCommandOption, ApplicationCommandOptionType, AutocompleteInteraction, ChatInputCommandInteraction, MessageFlags } from 'discord.js'
 import Database from '../utils/database'
 import Monitors from '../utils/monitors'
 
@@ -12,7 +12,8 @@ export default class HintCommand extends Command {
       type: ApplicationCommandOptionType.String,
       name: 'item',
       description: 'The item to request a hint for',
-      required: true
+      required: true,
+      autocomplete: true
     },
     {
       type: ApplicationCommandOptionType.String,
@@ -275,5 +276,103 @@ export default class HintCommand extends Command {
           reject(err)
         })
     })
+  }
+
+  async autocomplete (interaction: AutocompleteInteraction): Promise<void> {
+    const focusedOption = interaction.options.getFocused(true)
+
+    if (focusedOption.name !== 'item') return
+
+    if (!interaction.guildId) {
+      console.log('[Hint Autocomplete] No guild ID')
+      return interaction.respond([])
+    }
+
+    try {
+      // Get the player name (from linked account or player parameter)
+      let player = interaction.options.getString('player')
+      if (!player) {
+        const links = await Database.getLinks(interaction.guildId)
+        const userLink = links.find(link => link.discord_id === interaction.user.id)
+        if (userLink) {
+          player = userLink.archipelago_name
+        }
+      }
+
+      console.log('[Hint Autocomplete] Player:', player)
+
+      if (!player) {
+        console.log('[Hint Autocomplete] No player found')
+        return interaction.respond([])
+      }
+
+      // Find the active monitor for this player
+      const guildMonitors = Monitors.get(interaction.guildId)
+      console.log('[Hint Autocomplete] Guild monitors:', guildMonitors.length)
+      const activeMonitors = guildMonitors.filter(monitor => monitor.data.player === player)
+      console.log('[Hint Autocomplete] Active monitors for player:', activeMonitors.length)
+
+      if (activeMonitors.length === 0) {
+        console.log('[Hint Autocomplete] No active monitors for player')
+        return interaction.respond([])
+      }
+
+      const monitor = activeMonitors[0]
+      const game = monitor.data.game
+      console.log('[Hint Autocomplete] Game:', game)
+
+      // Get item list from data package
+      const gamePackage = monitor.client.package.findPackage(game) as any
+      console.log('[Hint Autocomplete] Game package found:', !!gamePackage)
+
+      if (!gamePackage) {
+        console.log('[Hint Autocomplete] No game package')
+        return interaction.respond([])
+      }
+
+      // Let's check both itemTable and reverseItemTable structure
+      const itemTable = gamePackage.itemTable
+      const reverseItemTable = gamePackage.reverseItemTable
+
+      console.log('[Hint Autocomplete] Item table found:', !!itemTable)
+      console.log('[Hint Autocomplete] Reverse item table found:', !!reverseItemTable)
+
+      // Check the keys of reverseItemTable - they should be item names
+      if (reverseItemTable) {
+        const reverseKeys = Object.keys(reverseItemTable)
+        console.log('[Hint Autocomplete] Reverse table has', reverseKeys.length, 'entries')
+        console.log('[Hint Autocomplete] First reverse key:', reverseKeys[0])
+        console.log('[Hint Autocomplete] First reverse value:', reverseItemTable[reverseKeys[0]])
+      }
+
+      // reverseItemTable maps IDs to names, so we want the VALUES
+      if (!reverseItemTable) {
+        console.log('[Hint Autocomplete] No reverse item table')
+        return interaction.respond([])
+      }
+
+      // Get the item names (values from reverseItemTable)
+      const itemNames = Object.values(reverseItemTable) as string[]
+      console.log('[Hint Autocomplete] Total item names:', itemNames.length)
+      const userInput = focusedOption.value.toLowerCase()
+
+      // Filter items based on user input
+      const filtered = itemNames
+        .filter(item => {
+          const itemName = typeof item === 'string' ? item : String(item)
+          return itemName.toLowerCase().includes(userInput)
+        })
+        .slice(0, 25) // Discord autocomplete limit
+        .map(item => {
+          const itemName = typeof item === 'string' ? item : String(item)
+          return { name: itemName, value: itemName }
+        })
+
+      console.log('[Hint Autocomplete] Filtered items:', filtered.length)
+      interaction.respond(filtered)
+    } catch (err) {
+      console.error('[Hint Autocomplete] Error:', err)
+      interaction.respond([])
+    }
   }
 }

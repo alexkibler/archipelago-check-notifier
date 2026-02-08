@@ -63,8 +63,9 @@ export default class MonitorCommand extends Command {
     }
 
     // Only allow one monitor per host/port/player combo
-    if (Monitors.has(`${monitorData.host}:${monitorData.port}`)) {
-      return interaction.reply({ content: 'Already monitoring that host!', flags: [MessageFlags.Ephemeral] })
+    const monitorKey = `${monitorData.host}:${monitorData.port}:${monitorData.player}`
+    if (Monitors.has(monitorKey)) {
+      return interaction.reply({ content: `Already monitoring ${monitorData.player} on that host!`, flags: [MessageFlags.Ephemeral] })
     }
 
     // Send a message to the channel to confirm the monitor has been added.
