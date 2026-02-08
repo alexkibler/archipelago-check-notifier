@@ -30,6 +30,14 @@ export default class UnmonitorCommand extends Command {
 
   autocomplete (interaction: AutocompleteInteraction): void {
     if (interaction.guildId == null) return
-    interaction.respond(Monitors.get(interaction.guildId).map(monitor => ({ name: monitor.client.socket.url || '', value: monitor.client.socket.url || '' })))
+    interaction.respond(Monitors.get(interaction.guildId).map(monitor => {
+      const uri = monitor.client.socket.url || ''
+      const player = monitor.data.player
+      const game = monitor.data.game
+      return {
+        name: `${uri} - ${player} (${game})`,
+        value: uri
+      }
+    }))
   }
 }

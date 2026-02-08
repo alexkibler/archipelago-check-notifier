@@ -110,6 +110,12 @@ export default class Monitor {
     // New v2 Message Handling
     client.messages.on('itemSent', async (text, item, nodes) => {
       if (!this.isActive) return
+
+      // Only show items involving the monitored player
+      const playerNodes = nodes.filter((n: any) => n.type === 'player')
+      const involvesMonitoredPlayer = playerNodes.some((n: any) => n.player?.name === this.data.player)
+      if (!involvesMonitoredPlayer) return
+
       const formatted = await this.formatWithMentions(text, nodes)
       this.addQueue(formatted, 'items')
     })
@@ -117,6 +123,12 @@ export default class Monitor {
     client.messages.on('itemHinted', async (text, item, found, nodes) => {
       if (!this.isActive) return
       console.log('[itemHinted event]', { text, item, found })
+
+      // Only show hints involving the monitored player
+      const playerNodes = nodes.filter((n: any) => n.type === 'player')
+      const involvesMonitoredPlayer = playerNodes.some((n: any) => n.player?.name === this.data.player)
+      if (!involvesMonitoredPlayer) return
+
       const formatted = await this.formatWithMentions(text, nodes)
       this.addQueue(formatted, 'hints')
     })
@@ -150,37 +162,57 @@ export default class Monitor {
     client.messages.on('connected', async (text, player, tags, nodes) => {
       if (!this.isActive) return
       if (tags.includes('Monitor')) return
+
+      // Only show connect events for the monitored player
+      if (player?.name !== this.data.player) return
+
       const formatted = await this.formatWithMentions(text, nodes, 'mention_join_leave')
       this.send(formatted)
     })
 
     client.messages.on('disconnected', async (text, player, nodes) => {
       if (!this.isActive) return
+
+      // Only show disconnect events for the monitored player
+      if (player?.name !== this.data.player) return
+
       const formatted = await this.formatWithMentions(text, nodes, 'mention_join_leave')
       this.send(formatted)
     })
 
     client.messages.on('goaled', async (text, player, nodes) => {
       if (!this.isActive) return
+
+      // Only show goal completion for the monitored player
+      if (player?.name !== this.data.player) return
+
       const formatted = await this.formatWithMentions(text, nodes, 'mention_completion')
       this.send(formatted)
     })
 
     client.messages.on('released', async (text, player, nodes) => {
       if (!this.isActive) return
+
+      // Only show released events for the monitored player
+      if (player?.name !== this.data.player) return
+
       const formatted = await this.formatWithMentions(text, nodes, 'mention_item_finder')
       this.send(formatted)
     })
 
     client.messages.on('collected', async (text, player, nodes) => {
       if (!this.isActive) return
+
+      // Only show collected events for the monitored player
+      if (player?.name !== this.data.player) return
+
       const formatted = await this.formatWithMentions(text, nodes, 'mention_item_finder')
       this.send(formatted)
     })
   }
 
   // Helper to convert nodes to text with Discord mentions applied
-  async formatWithMentions (plainText: string, nodes: any[], flagName?: string): Promise<string> {
+  async formatWithMentions (_plainText: string, nodes: any[], flagName?: string): Promise<string> {
     const links = await Database.getLinks(this.guild.id)
     const linkMap = new Map<string, any>(links.map(l => [l.archipelago_name, l]))
 
