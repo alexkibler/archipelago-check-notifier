@@ -1,6 +1,6 @@
 services:
   archipelago-bot:
-    image: ghcr.io/matthe815s-projects/archipelago-check-notifier:latest
+    image: ghcr.io/alexkibler/archipelago-check-notifier:latest
     container_name: archipelago-bot
     restart: unless-stopped
     volumes:

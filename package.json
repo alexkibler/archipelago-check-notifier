@@ -39,14 +39,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/matthe815s-projects/archipelago-check-notifier.git"
+    "url": "git+https://github.com/alexkibler/archipelago-check-notifier.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/matthe815s-projects/archipelago-check-notifier/issues"
+    "url": "https://github.com/alexkibler/archipelago-check-notifier/issues"
   },
-  "homepage": "https://github.com/matthe815s-projects/archipelago-check-notifier#readme",
+  "homepage": "https://github.com/alexkibler/archipelago-check-notifier#readme",
   "description": "",
   "files": [
     "es",
