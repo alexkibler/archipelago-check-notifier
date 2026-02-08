@@ -1,0 +1,12 @@
+services:
+  archipelago-bot:
+    image: ghcr.io/alexkibler/archipelago-check-notifier:latest
+    container_name: archipelago-bot
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - CLIENT_ID=${CLIENT_ID}
+      - GUILD_ID=${GUILD_ID}
+      - DB_PATH=/data/database.sqlite

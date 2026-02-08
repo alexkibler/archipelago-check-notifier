@@ -1,8 +1,10 @@
 {
   "dependencies": {
-    "archipelago.js": "^1.1.0",
+    "archipelago.js": "^2.0.4",
     "discord.js": "^14.25.1",
-    "mysql2": "^3.6.0"
+    "dotenv": "^17.2.4",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   },
   "name": "archipelago-check-notifier",
   "version": "1.4.0",
@@ -37,14 +39,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/matthe815s-projects/archipelago-check-notifier.git"
+    "url": "git+https://github.com/alexkibler/archipelago-check-notifier.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/matthe815s-projects/archipelago-check-notifier/issues"
+    "url": "https://github.com/alexkibler/archipelago-check-notifier/issues"
   },
-  "homepage": "https://github.com/matthe815s-projects/archipelago-check-notifier#readme",
+  "homepage": "https://github.com/alexkibler/archipelago-check-notifier#readme",
   "description": "",
   "files": [
     "es",
